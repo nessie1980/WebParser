@@ -341,11 +341,11 @@ namespace WebParser
 
                                         // Download a string
 #if _DEBUG_THREADFUNCTION
-                                    Console.WriteLine(@"WebSide: {0}", _webSite);
+                                        Console.WriteLine(@"WebSide: {0}", _webSite);
 #endif
                                         webPageContent = client.DownloadString(_webSite);
                                     }
-
+                                   
                                     // Check if the website content load was successful and call event
                                     if (webPageContent == @"")
                                     {

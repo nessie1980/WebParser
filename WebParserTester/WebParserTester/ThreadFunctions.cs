@@ -271,8 +271,8 @@ namespace WebParserTester
                 OnUpdateGuiEvent(this, new GuiUpdateEventArgs(GuiUpdateState.TestCaseStart, new List<string> { System.Reflection.MethodBase.GetCurrentMethod().Name }));
 
             // Create RegexList
-            RegExList regexList = new RegExList(@"FirstRegex", new RegexElement(@"RegexString1", 1, new List<RegexOptions>() { RegexOptions.None }));
-            regexList.Add(@"SecondRegex", new RegexElement(@"RegexString2", 1, new List<RegexOptions>() { RegexOptions.Singleline, RegexOptions.IgnoreCase }));
+            RegExList regexList = new RegExList(@"FirstRegex", new RegexElement(@"RegexString1", 1, true, new List<RegexOptions>() { RegexOptions.None }));
+            regexList.Add(@"SecondRegex", new RegexElement(@"RegexString2", 1, false, new List<RegexOptions>() { RegexOptions.Singleline, RegexOptions.IgnoreCase }));
             // Set regexlist to webparser
             _webParser.RegexList = regexList;
             // Set website to webparser
@@ -358,7 +358,7 @@ namespace WebParserTester
             // Set website to the webparser
             _webParser.WebSite = @"http://tbarth.eu/sunnyconnectoranalyzer";
             // Create RegexList
-            RegExList regexList = new RegExList(@"Gesamt", new RegexElement(@">Gsamt-(.*?)<", 0, new List<RegexOptions>() { RegexOptions.None }));
+            RegExList regexList = new RegExList(@"Gesamt", new RegexElement(@">Gsamt-(.*?)<", 0, false, new List<RegexOptions>() { RegexOptions.None }));
             // Set regexlist to webparser
             _webParser.RegexList = regexList;
 
@@ -382,7 +382,7 @@ namespace WebParserTester
             // Set website to the webparser
             _webParser.WebSite = @"http://tbarth.eu/sunnyconnectoranalyzer";
             // Create RegexList
-            RegExList regexList = new RegExList(@"Gesamt", new RegexElement(@">Gesamt-(.*?)<", 0, new List<RegexOptions>() { RegexOptions.None }));
+            RegExList regexList = new RegExList(@"Gesamt", new RegexElement(@">Gesamt-(.*?)<", 0, false, new List<RegexOptions>() { RegexOptions.None }));
             // Set regexlist to webparser
             _webParser.RegexList = regexList;
 
