@@ -271,8 +271,8 @@ namespace WebParserTester
                 OnUpdateGuiEvent(this, new GuiUpdateEventArgs(GuiUpdateState.TestCaseStart, new List<string> { System.Reflection.MethodBase.GetCurrentMethod().Name }));
 
             // Create RegexList
-            RegExList regexList = new RegExList(@"FirstRegex", new RegexElement(@"RegexString1", 1, true, new List<RegexOptions>() { RegexOptions.None }));
-            regexList.Add(@"SecondRegex", new RegexElement(@"RegexString2", 1, false, new List<RegexOptions>() { RegexOptions.Singleline, RegexOptions.IgnoreCase }));
+            RegExList regexList = new RegExList(@"FirstRegex", new RegexElement(@"RegexString1", 1, true, false, new List<RegexOptions>() { RegexOptions.None }));
+            regexList.Add(@"SecondRegex", new RegexElement(@"RegexString2", 1, false, false, new List<RegexOptions>() { RegexOptions.Singleline, RegexOptions.IgnoreCase }));
             // Set regexlist to webparser
             _webParser.RegexList = regexList;
             // Set website to webparser
@@ -358,7 +358,7 @@ namespace WebParserTester
             // Set website to the webparser
             _webParser.WebSite = @"http://tbarth.eu/sunnyconnectoranalyzer";
             // Create RegexList
-            RegExList regexList = new RegExList(@"Gesamt", new RegexElement(@">Gsamt-(.*?)<", 0, false, new List<RegexOptions>() { RegexOptions.None }));
+            RegExList regexList = new RegExList(@"Gesamt", new RegexElement(@">Gsamt-(.*?)<", 0, false, false, new List<RegexOptions>() { RegexOptions.None }));
             // Set regexlist to webparser
             _webParser.RegexList = regexList;
 
@@ -381,8 +381,10 @@ namespace WebParserTester
 
             // Set website to the webparser
             _webParser.WebSite = @"http://tbarth.eu/sunnyconnectoranalyzer";
+            //_webParser.WebSite = @"http://www.immobilienscout24.de/expose/86810409?PID=60978745&ftc=9004EXPXXUA&utm_medium=email&utm_source=system&utm_campaign=default_fulfillment&utm_content=default_expose&CCWID=$CWID_CONTACT$";
             // Create RegexList
-            RegExList regexList = new RegExList(@"Gesamt", new RegexElement(@">Gesamt-(.*?)<", 0, false, new List<RegexOptions>() { RegexOptions.None }));
+            RegExList regexList = new RegExList(@"Gesamt", new RegexElement(@">Gesamt-(.*?)<", -1, false, false, new List<RegexOptions>() { RegexOptions.None }));
+            //RegExList regexList = new RegExList(@"PIC", new RegexElement("data-ng-non-bindable data-src=\"(.*?)\"", 0, true, true, new List<RegexOptions>() { RegexOptions.None }));
             // Set regexlist to webparser
             _webParser.RegexList = regexList;
 

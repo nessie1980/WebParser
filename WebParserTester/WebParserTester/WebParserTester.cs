@@ -253,7 +253,7 @@ namespace WebParserTester
 
                                 if (e.WebParserInfoState.LastErrorCode == WebParserErrorCodes.Finished 
                                     && _threadFunctions.WebParser.SearchResult.Count == 1
-                                    && e.WebParserInfoState.SearchResult["Gesamt"] == "Anlage")
+                                    && e.WebParserInfoState.SearchResult["Gesamt"][0] == "Anlage")
                                         HelperFunctions.AddTestCaseResultToReport(richTextBoxResult, true);
                                 else
                                 {

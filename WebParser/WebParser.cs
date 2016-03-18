@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Net;
 using System.Text.RegularExpressions;
-using System.Net.Sockets;
-using System.Xml;
-using mshtml;
-using System.Web;
+using System.Text;
+using System.IO;
 
 namespace WebParser
 {
@@ -71,7 +69,7 @@ namespace WebParser
         /// Key is the regex string
         /// Value is the search result of the regex
         /// </summary>
-        private Dictionary<string, string> _searchResult = null;
+        private Dictionary<string, List<string>> _searchResult = null;
 
         /// <summary>
         /// Stores the last throw exception
@@ -207,7 +205,7 @@ namespace WebParser
             }
         }
 
-        public Dictionary<string, string> SearchResult
+        public Dictionary<string, List<string>> SearchResult
         {
             get { return _searchResult; }
             internal set
@@ -383,7 +381,7 @@ namespace WebParser
                                         int statusValueStep = (int)((100 - 15) / RegexList.RegexListDictionary.Count);
                                         int statusValue = 15;
 #if _DEBUG_THREADFUNCTION
-                                    Console.WriteLine("Parsing-Step: {0}", statusValueStep);
+                                        Console.WriteLine("Parsing-Step: {0}", statusValueStep);
 #endif
 
                                         // Loop through the dictionary and fill the result in the result list
@@ -433,14 +431,70 @@ namespace WebParser
                                             // Add the parsing result if a result has been found
                                             if (regexExpression.Value.RegexFoundPosition < matchCollection.Count)
                                             {
-#if _DEBUG_THREADFUNCTION
-                                                Console.WriteLine(String.Format(@"regexExpression '{0}' = '{1}'", regexExpression.Key, matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value));
-                                                Console.WriteLine(String.Format(@"Value: '{0}' = '{1}'", regexExpression.Value.RegexExpresion, matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value));
-#endif
                                                 if (SearchResult == null)
-                                                    SearchResult = new Dictionary<string, string>();
-                                                SearchResult.Add(regexExpression.Key, matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value);
+                                                {
+                                                    SearchResult = new Dictionary<string, List<string>>();
+                                                }
+                                                List<string> listResults = new List<string>();
 
+                                                // If a specific search result should be taken or all results (RegexFoundPosition == -1)
+                                                if (regexExpression.Value.RegexFoundPosition >= 0)
+                                                {
+#if _DEBUG_THREADFUNCTION
+                                                    Console.WriteLine(String.Format(@"Value: '{0}' = '{1}'", regexExpression.Key, matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value));
+#endif
+                                                    if (regexExpression.Value.DownloadResult)
+                                                    {
+
+                                                        // Create web client with the given or default user agent identifier.
+                                                        using (var client = new WebClient())
+                                                        {
+                                                            byte[] downloadContent;
+                                                            // Browser identifier (e.g. FireFox 36)
+                                                            client.Headers["User-Agent"] = UserAgentIdentifier;
+
+                                                            // Download a string
+#if _DEBUG_THREADFUNCTION
+                                                            Console.WriteLine(@"DownLoad-WebSide: {0}", matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value);
+#endif
+                                                            downloadContent = client.DownloadData(matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value);
+                                                            listResults.Add(Convert.ToBase64String(downloadContent));
+                                                        }
+                                                    }
+                                                    else
+                                                        listResults.Add(matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value);
+                                                }
+                                                else
+                                                {
+                                                    foreach (Match match in matchCollection)
+                                                    {
+#if _DEBUG_THREADFUNCTION
+                                                        Console.WriteLine(String.Format(@"Value: '{0}' = '{1}'", regexExpression.Key, match.Groups[1].Value));
+#endif
+                                                        if (regexExpression.Value.DownloadResult)
+                                                        {
+
+                                                            // Create web client with the given or default user agent identifier.
+                                                            using (var client = new WebClient())
+                                                            {
+                                                                byte[] downloadContent;
+                                                                // Browser identifier (e.g. FireFox 36)
+                                                                client.Headers["User-Agent"] = UserAgentIdentifier;
+
+                                                                // Download a string
+#if _DEBUG_THREADFUNCTION
+                                                                Console.WriteLine(@"DownLoad-WebSide: {0}", matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value);
+#endif
+                                                                downloadContent = client.DownloadData(matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value);
+                                                                listResults.Add(Convert.ToBase64String(downloadContent));
+                                                            }
+                                                        }
+                                                        else
+                                                            listResults.Add(match.Groups[1].Value);
+                                                    }
+                                                }
+
+                                                SearchResult.Add(regexExpression.Key, listResults);
                                                 added = true;
                                             }
 
@@ -448,7 +502,7 @@ namespace WebParser
                                             if ((matchCollection.Count == 0 || added == false) && !regexElement.ResultEmpty)
                                             {
 #if _DEBUG_THREADFUNCTION
-                                            Console.WriteLine(String.Format(@"No MATCH found!"));
+                                                Console.WriteLine(String.Format(@"No MATCH found!"));
 #endif
                                                 LastErrorCode = WebParserErrorCodes.ParsingFailed;
                                                 LastExepction = null;
@@ -700,7 +754,7 @@ namespace WebParser
         /// Key is the regex string
         /// Value is the search result of the regex
         /// </summary>
-        private Dictionary<string, string> _searchResult;
+        private Dictionary<string, List<string>> _searchResult;
 
         /// <summary>
         /// Exception if an exception occurred
@@ -753,7 +807,7 @@ namespace WebParser
             internal set { _lastRegexKey = value; }
         }
 
-        public Dictionary<string, string> SearchResult
+        public Dictionary<string, List<string>> SearchResult
         {
             get { return _searchResult; }
             internal set { _searchResult = value; }

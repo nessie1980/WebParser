@@ -143,6 +143,11 @@ namespace WebParser
         /// </summary>
         private bool _resultEmpty;
 
+        /// <summary>
+        /// Flag if the found result should be downloaded
+        /// </summary>
+        private bool _downloadResult;
+
         #endregion Variables
 
         #region Properties
@@ -171,6 +176,12 @@ namespace WebParser
             get { return _regexFoundPosition; }
         }
 
+        public bool DownloadResult
+        {
+            set { _downloadResult = value; }
+            get { return _downloadResult; }
+        }
+
         #endregion Properties
 
         #region Methodes
@@ -181,12 +192,14 @@ namespace WebParser
         /// <param name="regexExpression">The string for the search string of the regex</param>
         /// <param name="regexFoundPostion">The index of the found value</param>
         /// <param name="resultEmpty">Flag if the parsing result can be empty</param>
+        /// <param name="downloadResult">Flag if the result should be downloaded</param>
         /// <param name="regexOptions">The list with the regex options. This parameter is optional</param>
-        public RegexElement(string regexExpression, int regexFoundPostion, bool resultEmpty, List<RegexOptions> regexOptions = null)
+        public RegexElement(string regexExpression, int regexFoundPostion, bool resultEmpty, bool downloadResult, List<RegexOptions> regexOptions = null)
         {
             _regexExpression = regexExpression;
             _regexFoundPosition = regexFoundPostion;
             _resultEmpty = resultEmpty;
+            _downloadResult = downloadResult;
             _regexOptions = regexOptions;
         }
 
