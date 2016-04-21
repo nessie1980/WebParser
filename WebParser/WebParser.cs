@@ -40,6 +40,11 @@ namespace WebParser
         private string _userAgentIdentifier = @"Mozilla/5.0 (Windows NT 6.1; WOW64; rv:36.0) Gecko/20100101 Firefox/36.0";
 
         /// <summary>
+        /// Encoding for the download content
+        /// </summary>
+        private Encoding _encodingContent = Encoding.Default;
+
+        /// <summary>
         /// Status of the webparser
         /// </summary>
         private WebParserState _state = WebParserState.Idle;
@@ -110,6 +115,16 @@ namespace WebParser
             { 
                 _userAgentIdentifier = value;
                 _webParserInfoState.UserAgentIdentifier = value;
+            }
+        }
+
+        public Encoding EncodingContent
+        {
+            get { return _encodingContent; }
+            set
+            {
+                _encodingContent = value;
+                _webParserInfoState.EncodingContent = value;
             }
         }
 
@@ -250,6 +265,7 @@ namespace WebParser
             _threadWebParser.Name = @"WebParser";
             _threadWebParser.Start();
 
+            EncodingContent = Encoding.Default;
             WebSite = @"";
             State = WebParserState.Idle;
             RegexList = null;
@@ -258,14 +274,16 @@ namespace WebParser
         /// <summary>
         /// Constructor with URL and RegExList
         /// </summary>
-        /// <param name="WebSiteUrl">URL of the website which should be parsed</param>
+        /// <param name="webSiteUrl">URL of the website which should be parsed</param>
         /// <param name="regexList">Dictionary with the regex strings and the regex options for it</param>
-        public WebParser(string WebSiteUrl, RegExList regexList) : base ()
+        /// <param name="encoding">Encoding for the download content</param>
+        public WebParser(string webSiteUrl, RegExList regexList, Encoding encoding) : base ()
         {
+            _encodingContent = encoding;
             _regexList = regexList;
 
             // User property for validation
-            WebSite = WebSiteUrl;
+            WebSite = webSiteUrl;
         }
 
         /// <summary>
@@ -336,6 +354,7 @@ namespace WebParser
                                     {
                                         // Browser identifier (e.g. FireFox 36)
                                         client.Headers["User-Agent"] = UserAgentIdentifier;
+                                        client.Encoding = EncodingContent;
 
                                         // Download a string
 #if _DEBUG_THREADFUNCTION
@@ -725,6 +744,11 @@ namespace WebParser
         private string _userAgentIdentifier;
 
         /// <summary>
+        /// Encoding of the download content
+        /// </summary>
+        private Encoding _encodingContent;
+
+        /// <summary>
         /// Current state of the WebParser
         /// </summary>
         private WebParserState _state;
@@ -775,6 +799,12 @@ namespace WebParser
         {
             get { return _userAgentIdentifier; }
             internal set { _userAgentIdentifier = value; }
+        }
+
+        public Encoding EncodingContent
+        {
+            get { return _encodingContent; }
+            internal set { _encodingContent = value; }
         }
 
         public WebParserState State
