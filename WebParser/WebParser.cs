@@ -40,9 +40,24 @@ namespace WebParser
         private string _userAgentIdentifier = @"Mozilla/5.0 (Windows NT 6.1; WOW64; rv:36.0) Gecko/20100101 Firefox/36.0";
 
         /// <summary>
-        /// Encoding for the download content
+        /// Encoding type for the download content
         /// </summary>
-        private Encoding _encodingContent = Encoding.Default;
+        private string _encodingType = Encoding.Default.ToString();
+
+        /// <summary>
+        /// String with the loaded website content
+        /// </summary>
+        private string _webSiteContent;
+
+        /// <summary>
+        /// Byte array with the downloaded data content
+        /// </summary>
+        private byte[] _dataContent;
+
+        /// <summary>
+        /// Flag if the download of the website content is complete
+        /// </summary>
+        private bool _downloadComplete = false;
 
         /// <summary>
         /// Status of the webparser
@@ -108,7 +123,7 @@ namespace WebParser
             }
         }
 
-        public String UserAgentIdentifier
+        public string UserAgentIdentifier
         {
             get { return _userAgentIdentifier; }
             set 
@@ -118,14 +133,31 @@ namespace WebParser
             }
         }
 
-        public Encoding EncodingContent
+        public string EncodingType
         {
-            get { return _encodingContent; }
+            get { return _encodingType; }
             set
             {
-                _encodingContent = value;
-                _webParserInfoState.EncodingContent = value;
+                _encodingType = value;
             }
+        }
+
+        public string WebSiteContent
+        {
+            get { return _webSiteContent; }
+            internal set { _webSiteContent = value; }
+        }
+
+        public byte[] DataContent
+        {
+            get { return _dataContent; }
+            internal set { _dataContent = value; }
+        }
+
+        public bool DownloadComplete
+        {
+            get { return _downloadComplete; }
+            internal set { _downloadComplete = value; }
         }
 
         public string WebSite
@@ -196,7 +228,7 @@ namespace WebParser
             internal set
             {
                 _percent = value;
-                _webParserInfoState.Percent = value;
+                _webParserInfoState.Percentage = value;
             }
         }
 
@@ -265,7 +297,7 @@ namespace WebParser
             _threadWebParser.Name = @"WebParser";
             _threadWebParser.Start();
 
-            EncodingContent = Encoding.Default;
+            EncodingType = Encoding.Default.ToString();
             WebSite = @"";
             State = WebParserState.Idle;
             RegexList = null;
@@ -277,9 +309,9 @@ namespace WebParser
         /// <param name="webSiteUrl">URL of the website which should be parsed</param>
         /// <param name="regexList">Dictionary with the regex strings and the regex options for it</param>
         /// <param name="encoding">Encoding for the download content</param>
-        public WebParser(string webSiteUrl, RegExList regexList, Encoding encoding) : base ()
+        public WebParser(string webSiteUrl, RegExList regexList, string encoding) : base ()
         {
-            _encodingContent = encoding;
+            _encodingType = encoding;
             _regexList = regexList;
 
             // User property for validation
@@ -311,9 +343,6 @@ namespace WebParser
                             LastRegexListKey = null;
                             Percent = 0;
                             SetAndSendState(WebParserInfoState);
-
-                            // String for the loaded source code of the given website
-                            string webPageContent;
 
                             // Check if thread should be canceled
                             if (CancelThread)
@@ -354,17 +383,35 @@ namespace WebParser
                                     {
                                         // Browser identifier (e.g. FireFox 36)
                                         client.Headers["User-Agent"] = UserAgentIdentifier;
-                                        client.Encoding = EncodingContent;
-
-                                        // Download a string
+                                        // Download content as raw data
 #if _DEBUG_THREADFUNCTION
                                         Console.WriteLine(@"WebSide: {0}", _webSite);
 #endif
-                                        webPageContent = client.DownloadString(_webSite);
+                                        DownloadComplete = false;
+                                        client.DownloadProgressChanged += new DownloadProgressChangedEventHandler(client_DownloadProgressChanged);
+                                        client.DownloadDataCompleted += new DownloadDataCompletedEventHandler(client_DownloadDataWebSiteCompleted);
+                                        client.DownloadDataAsync(new Uri(_webSite));
+                                        while (!DownloadComplete)
+                                        {
+                                            // Check if thread should be canceled
+                                            if (CancelThread)
+                                            {
+
+                                                LastErrorCode = WebParserErrorCodes.CancelThread;
+                                                LastExepction = null;
+                                                Percent = 0;
+                                                SetAndSendState(WebParserInfoState);
+                                                DownloadComplete = false;
+                                                client.CancelAsync();
+                                            }
+                                            Thread.Sleep(10);
+                                        }
+                                        client.DownloadProgressChanged -= new DownloadProgressChangedEventHandler(client_DownloadProgressChanged);
+                                        client.DownloadDataCompleted -= new DownloadDataCompletedEventHandler(client_DownloadDataWebSiteCompleted);
                                     }
-                                   
+
                                     // Check if the website content load was successful and call event
-                                    if (webPageContent == @"")
+                                    if (WebSiteContent == @"")
                                     {
                                         LastErrorCode = WebParserErrorCodes.NoWebContentLoaded;
                                         LastExepction = null;
@@ -445,7 +492,7 @@ namespace WebParser
 
                                             // Search for the value
                                             var added = false;
-                                            MatchCollection matchCollection = Regex.Matches(webPageContent, regexExpression.Value.RegexExpresion, tmpRegexOptions);
+                                            MatchCollection matchCollection = Regex.Matches(WebSiteContent, regexExpression.Value.RegexExpresion, tmpRegexOptions);
 
                                             // Add the parsing result if a result has been found
                                             if (regexExpression.Value.RegexFoundPosition < matchCollection.Count)
@@ -468,7 +515,6 @@ namespace WebParser
                                                         // Create web client with the given or default user agent identifier.
                                                         using (var client = new WebClient())
                                                         {
-                                                            byte[] downloadContent;
                                                             // Browser identifier (e.g. FireFox 36)
                                                             client.Headers["User-Agent"] = UserAgentIdentifier;
 
@@ -476,12 +522,42 @@ namespace WebParser
 #if _DEBUG_THREADFUNCTION
                                                             Console.WriteLine(@"DownLoad-WebSide: {0}", matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value);
 #endif
-                                                            downloadContent = client.DownloadData(matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value);
-                                                            listResults.Add(Convert.ToBase64String(downloadContent));
+                                                            DownloadComplete = false;
+                                                            client.DownloadProgressChanged += new DownloadProgressChangedEventHandler(client_DownloadProgressChanged);
+                                                            client.DownloadDataCompleted += new DownloadDataCompletedEventHandler(client_DownloadDataContentCompleted);
+                                                            client.DownloadDataAsync(new Uri(matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value));
+                                                            while (!DownloadComplete)
+                                                            {
+                                                                // Check if thread should be canceled
+                                                                if (CancelThread)
+                                                                {
+
+                                                                    LastErrorCode = WebParserErrorCodes.CancelThread;
+                                                                    LastExepction = null;
+                                                                    Percent = 0;
+                                                                    SetAndSendState(WebParserInfoState);
+                                                                    DownloadComplete = false;
+                                                                    client.CancelAsync();
+                                                                }
+                                                                Thread.Sleep(10);
+                                                            }
+                                                            client.DownloadProgressChanged -= new DownloadProgressChangedEventHandler(client_DownloadProgressChanged);
+                                                            client.DownloadDataCompleted -= new DownloadDataCompletedEventHandler(client_DownloadDataContentCompleted);
+
+                                                            listResults.Add(Convert.ToBase64String(DataContent));
                                                         }
                                                     }
                                                     else
-                                                        listResults.Add(matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value);
+                                                    {
+                                                        for (int i = 1; i < matchCollection[regexExpression.Value.RegexFoundPosition].Groups.Count; i++)
+                                                        {
+                                                            if (matchCollection[regexExpression.Value.RegexFoundPosition].Groups[i].Value != "")
+                                                            {
+                                                                listResults.Add(matchCollection[regexExpression.Value.RegexFoundPosition].Groups[i].Value);
+                                                                i = matchCollection[regexExpression.Value.RegexFoundPosition].Groups.Count;
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                                 else
                                                 {
@@ -492,24 +568,59 @@ namespace WebParser
 #endif
                                                         if (regexExpression.Value.DownloadResult)
                                                         {
-
-                                                            // Create web client with the given or default user agent identifier.
-                                                            using (var client = new WebClient())
+                                                            for (int i = 1; i < match.Groups.Count; i++)
                                                             {
-                                                                byte[] downloadContent;
-                                                                // Browser identifier (e.g. FireFox 36)
-                                                                client.Headers["User-Agent"] = UserAgentIdentifier;
+                                                                if (match.Groups[i].Value != "")
+                                                                {
 
-                                                                // Download a string
+                                                                    // Create web client with the given or default user agent identifier.
+                                                                    using (var client = new WebClient())
+                                                                    {
+                                                                        byte[] downloadContent;
+                                                                        // Browser identifier (e.g. FireFox 36)
+                                                                        client.Headers["User-Agent"] = UserAgentIdentifier;
+
+                                                                        // Download a string
 #if _DEBUG_THREADFUNCTION
-                                                                Console.WriteLine(@"DownLoad-WebSide: {0}", matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value);
+                                                                        Console.WriteLine(@"DownLoad-WebSide: {0}", match.Groups[i].Value);
 #endif
-                                                                downloadContent = client.DownloadData(matchCollection[regexExpression.Value.RegexFoundPosition].Groups[1].Value);
-                                                                listResults.Add(Convert.ToBase64String(downloadContent));
+                                                                        DownloadComplete = false;
+                                                                        client.DownloadProgressChanged += new DownloadProgressChangedEventHandler(client_DownloadProgressChanged);
+                                                                        client.DownloadDataCompleted += new DownloadDataCompletedEventHandler(client_DownloadDataContentCompleted);
+                                                                        client.DownloadDataAsync(new Uri(match.Groups[i].Value));
+                                                                        while (!DownloadComplete)
+                                                                        {
+                                                                            // Check if thread should be canceled
+                                                                            if (CancelThread)
+                                                                            {
+
+                                                                                LastErrorCode = WebParserErrorCodes.CancelThread;
+                                                                                LastExepction = null;
+                                                                                Percent = 0;
+                                                                                SetAndSendState(WebParserInfoState);
+                                                                                DownloadComplete = false;
+                                                                                client.CancelAsync();
+                                                                            }
+                                                                            Thread.Sleep(10);
+                                                                        }
+                                                                        client.DownloadProgressChanged -= new DownloadProgressChangedEventHandler(client_DownloadProgressChanged);
+                                                                        client.DownloadDataCompleted -= new DownloadDataCompletedEventHandler(client_DownloadDataContentCompleted);
+                                                                        listResults.Add(Convert.ToBase64String(DataContent));
+                                                                    }
+                                                                }
                                                             }
                                                         }
                                                         else
-                                                            listResults.Add(match.Groups[1].Value);
+                                                        {
+                                                            for (int i = 1; i < match.Groups.Count; i++)
+                                                            {
+                                                                if (match.Groups[i].Value != "")
+                                                                {
+                                                                    listResults.Add(match.Groups[i].Value);
+//                                                                    i = match.Groups.Count;
+                                                                }
+                                                            }
+                                                        }
                                                     }
                                                 }
 
@@ -595,6 +706,48 @@ namespace WebParser
             }
         }
 
+        public void client_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+        {
+            WebParserInfoState.PercentageDownload = e.ProgressPercentage;
+        }
+
+        /// <summary>
+        /// This function sets the downloaded website content to the class variable
+        /// </summary>
+        /// <param name="sender">Webclient which download the website content asynchron</param>
+        /// <param name="e">DownloadDataCompletedEventArgs with the result</param>
+        public void client_DownloadDataWebSiteCompleted(object sender, DownloadDataCompletedEventArgs e)
+        {
+            if (e.Error == null && !e.Cancelled)
+            {
+                if (e.Result.LongLength > 0)
+                    WebSiteContent = Encoding.UTF8.GetString(e.Result);
+                else
+                    WebSiteContent = "";
+
+                WebParserInfoState.PercentageDownload = 100;
+                DownloadComplete = true;
+            }
+        }
+
+        /// <summary>
+        /// This function sets the downloaded website content to the class variable
+        /// </summary>
+        /// <param name="sender">Webclient which download the website data content asynchron</param>
+        /// <param name="e">DownloadDataCompletedEventArgs with the result</param>
+        public void client_DownloadDataContentCompleted(object sender, DownloadDataCompletedEventArgs e)
+        {
+            if (e.Error == null && !e.Cancelled)
+            {
+                if (e.Result.LongLength > 0)
+                    DataContent = e.Result;
+                else
+                    Array.Clear(DataContent, 0, DataContent.Length);
+
+                DownloadComplete = true;
+            }
+        }
+
         /// <summary>
         /// This function starts the parsring process.
         /// </summary>
@@ -672,7 +825,7 @@ namespace WebParser
                 CancelThread = false;
             }
 #if DEBUG
-            Console.WriteLine(@"ErrorCode: {0} / Percent: {1}", webParserInfoState.LastErrorCode, webParserInfoState.Percent);
+            Console.WriteLine(@"ErrorCode: {0} / Percent: {1}", webParserInfoState.LastErrorCode, webParserInfoState.Percentage);
 #endif
             if (OnWebParserUpdate != null)
                 OnWebParserUpdate(this, new OnWebParserUpdateEventArgs(webParserInfoState));
@@ -744,19 +897,19 @@ namespace WebParser
         private string _userAgentIdentifier;
 
         /// <summary>
-        /// Encoding of the download content
-        /// </summary>
-        private Encoding _encodingContent;
-
-        /// <summary>
         /// Current state of the WebParser
         /// </summary>
         private WebParserState _state;
 
         /// <summary>
-        /// Percent of the process run
+        /// Percentage of the update process
         /// </summary>
-        private int _percent;
+        private int _percentageUpdate;
+        
+        /// <summary>
+        /// Perentage of the download process of the website or data content
+        /// </summary>
+        private int _percentageDownload;
 
         /// <summary>
         /// Last error code of the WebParser
@@ -801,22 +954,22 @@ namespace WebParser
             internal set { _userAgentIdentifier = value; }
         }
 
-        public Encoding EncodingContent
-        {
-            get { return _encodingContent; }
-            internal set { _encodingContent = value; }
-        }
-
         public WebParserState State
         {
             get { return _state; }
             internal set { _state = value; }
         }
 
-        public int Percent
+        public int Percentage
         {
-            get { return _percent; }
-            internal set { _percent = value; }
+            get { return _percentageUpdate; }
+            internal set { _percentageUpdate = value; }
+        }
+
+        public int PercentageDownload
+        {
+            get { return _percentageDownload; }
+            internal set { _percentageDownload = value; }
         }
 
         public WebParserErrorCodes LastErrorCode
