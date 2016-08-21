@@ -195,7 +195,7 @@ namespace WebParser
 
                     _webParserInfoState.WebSite = _webSite;
                 }
-                catch (Exception ex)
+                catch
                 {
                     _webSite = @"invalid";
                 }
@@ -403,6 +403,7 @@ namespace WebParser
                                                 SetAndSendState(WebParserInfoState);
                                                 DownloadComplete = false;
                                                 client.CancelAsync();
+                                                break;
                                             }
                                             Thread.Sleep(10);
                                         }
@@ -576,7 +577,6 @@ namespace WebParser
                                                                     // Create web client with the given or default user agent identifier.
                                                                     using (var client = new WebClient())
                                                                     {
-                                                                        byte[] downloadContent;
                                                                         // Browser identifier (e.g. FireFox 36)
                                                                         client.Headers["User-Agent"] = UserAgentIdentifier;
 
@@ -718,15 +718,27 @@ namespace WebParser
         /// <param name="e">DownloadDataCompletedEventArgs with the result</param>
         public void client_DownloadDataWebSiteCompleted(object sender, DownloadDataCompletedEventArgs e)
         {
-            if (e.Error == null && !e.Cancelled)
+            try
             {
-                if (e.Result.LongLength > 0)
-                    WebSiteContent = Encoding.UTF8.GetString(e.Result);
-                else
-                    WebSiteContent = "";
+                if (e.Error == null && !e.Cancelled)
+                {
+                    if (e.Result.LongLength > 0)
+                        WebSiteContent = Encoding.UTF8.GetString(e.Result);
+                    else
+                        WebSiteContent = "";
 
-                WebParserInfoState.PercentageDownload = 100;
-                DownloadComplete = true;
+                    WebParserInfoState.PercentageDownload = 100;
+                    DownloadComplete = true;
+                }
+            }
+            catch (WebException webEx)
+            {
+                // Set state
+                State = WebParserState.Idle;
+                LastErrorCode = WebParserErrorCodes.WebExceptionOccured;
+                LastExepction = webEx;
+                Percent = 0;
+                SetAndSendState(WebParserInfoState);
             }
         }
 
@@ -737,14 +749,26 @@ namespace WebParser
         /// <param name="e">DownloadDataCompletedEventArgs with the result</param>
         public void client_DownloadDataContentCompleted(object sender, DownloadDataCompletedEventArgs e)
         {
-            if (e.Error == null && !e.Cancelled)
+            try
             {
-                if (e.Result.LongLength > 0)
-                    DataContent = e.Result;
-                else
-                    Array.Clear(DataContent, 0, DataContent.Length);
+                if (e.Error == null && !e.Cancelled)
+                {
+                    if (e.Result.LongLength > 0)
+                        DataContent = e.Result;
+                    else
+                        Array.Clear(DataContent, 0, DataContent.Length);
 
-                DownloadComplete = true;
+                    DownloadComplete = true;
+                }
+            }
+            catch (WebException webEx)
+            {
+                // Set state
+                State = WebParserState.Idle;
+                LastErrorCode = WebParserErrorCodes.WebExceptionOccured;
+                LastExepction = webEx;
+                Percent = 0;
+                SetAndSendState(WebParserInfoState);
             }
         }
 
@@ -817,6 +841,15 @@ namespace WebParser
         /// <param name="percent">Percent of the process</param>
         void SetAndSendState(webParserInfoState webParserInfoState)
         {
+#if DEBUG
+            Console.WriteLine(@"State: {0} / ThreadRunning: {1} / ErrorCode: {2} / Percent: {3}", State, ThreadRunning, webParserInfoState.LastErrorCode, webParserInfoState.Percentage);
+#endif
+            if (OnWebParserUpdate != null)
+            {
+                if (ThreadRunning == true)
+                    OnWebParserUpdate(this, new OnWebParserUpdateEventArgs(webParserInfoState));
+            }
+
             // Set state to "idle"
             if (webParserInfoState.LastErrorCode == WebParserErrorCodes.Finished || webParserInfoState.LastErrorCode < 0)
             {
@@ -824,11 +857,6 @@ namespace WebParser
                 State = WebParserState.Idle;
                 CancelThread = false;
             }
-#if DEBUG
-            Console.WriteLine(@"ErrorCode: {0} / Percent: {1}", webParserInfoState.LastErrorCode, webParserInfoState.Percentage);
-#endif
-            if (OnWebParserUpdate != null)
-                OnWebParserUpdate(this, new OnWebParserUpdateEventArgs(webParserInfoState));
         }
 
         #endregion Methodes
