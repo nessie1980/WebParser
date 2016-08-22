@@ -99,7 +99,7 @@ namespace WebParser
         /// <summary>
         /// Current state of the WebParser
         /// </summary>
-        private webParserInfoState _webParserInfoState = new webParserInfoState();
+        private WebParserInfoState _webParserInfoState = new WebParserInfoState();
 
         /// <summary>
         /// Flag if the thread should be canceled
@@ -272,7 +272,7 @@ namespace WebParser
             }
         }
 
-        public webParserInfoState WebParserInfoState
+        public WebParserInfoState WebParserInfoState
         {
             get { return _webParserInfoState; }
         }
@@ -445,7 +445,7 @@ namespace WebParser
                                         Percent = 15;
                                         SetAndSendState(WebParserInfoState);
 
-                                        int statusValueStep = (int)((100 - 15) / RegexList.RegexListDictionary.Count);
+                                        int statusValueStep = (100 - 15) / RegexList.RegexListDictionary.Count;
                                         int statusValue = 15;
 #if _DEBUG_THREADFUNCTION
                                         Console.WriteLine("Parsing-Step: {0}", statusValueStep);
@@ -552,6 +552,15 @@ namespace WebParser
                                                     {
                                                         for (int i = 1; i < matchCollection[regexExpression.Value.RegexFoundPosition].Groups.Count; i++)
                                                         {
+                                                            // Check if thread should be canceled
+                                                            if (CancelThread)
+                                                            {
+                                                                LastErrorCode = WebParserErrorCodes.CancelThread;
+                                                                LastExepction = null;
+                                                                Percent = 0;
+                                                                SetAndSendState(WebParserInfoState);
+                                                            }
+
                                                             if (matchCollection[regexExpression.Value.RegexFoundPosition].Groups[i].Value != "")
                                                             {
                                                                 listResults.Add(matchCollection[regexExpression.Value.RegexFoundPosition].Groups[i].Value);
@@ -564,6 +573,14 @@ namespace WebParser
                                                 {
                                                     foreach (Match match in matchCollection)
                                                     {
+                                                        // Check if thread should be canceled
+                                                        if (CancelThread)
+                                                        {
+                                                            LastErrorCode = WebParserErrorCodes.CancelThread;
+                                                            LastExepction = null;
+                                                            Percent = 0;
+                                                            SetAndSendState(WebParserInfoState);
+                                                        }
 #if _DEBUG_THREADFUNCTION
                                                         Console.WriteLine(String.Format(@"Value: '{0}' = '{1}'", regexExpression.Key, match.Groups[1].Value));
 #endif
@@ -571,6 +588,15 @@ namespace WebParser
                                                         {
                                                             for (int i = 1; i < match.Groups.Count; i++)
                                                             {
+                                                                // Check if thread should be canceled
+                                                                if (CancelThread)
+                                                                {
+                                                                    LastErrorCode = WebParserErrorCodes.CancelThread;
+                                                                    LastExepction = null;
+                                                                    Percent = 0;
+                                                                    SetAndSendState(WebParserInfoState);
+                                                                }
+
                                                                 if (match.Groups[i].Value != "")
                                                                 {
 
@@ -614,6 +640,15 @@ namespace WebParser
                                                         {
                                                             for (int i = 1; i < match.Groups.Count; i++)
                                                             {
+                                                                // Check if thread should be canceled
+                                                                if (CancelThread)
+                                                                {
+                                                                    LastErrorCode = WebParserErrorCodes.CancelThread;
+                                                                    LastExepction = null;
+                                                                    Percent = 0;
+                                                                    SetAndSendState(WebParserInfoState);
+                                                                }
+
                                                                 if (match.Groups[i].Value != "")
                                                                 {
                                                                     listResults.Add(match.Groups[i].Value);
@@ -838,15 +873,14 @@ namespace WebParser
         /// the state to the GUI
         /// </summary>
         /// <param name="webParserInfoState">WebParserInfoState</param>
-        /// <param name="percent">Percent of the process</param>
-        void SetAndSendState(webParserInfoState webParserInfoState)
+        void SetAndSendState(WebParserInfoState webParserInfoState)
         {
 #if DEBUG
             Console.WriteLine(@"State: {0} / ThreadRunning: {1} / ErrorCode: {2} / Percent: {3}", State, ThreadRunning, webParserInfoState.LastErrorCode, webParserInfoState.Percentage);
 #endif
             if (OnWebParserUpdate != null)
             {
-                if (ThreadRunning == true)
+                if (ThreadRunning)
                     OnWebParserUpdate(this, new OnWebParserUpdateEventArgs(webParserInfoState));
             }
 
@@ -910,7 +944,7 @@ namespace WebParser
     /// <summary>
     /// Class of the current info state of the WebParser
     /// </summary>
-    public class webParserInfoState
+    public class WebParserInfoState
     {
         #region Variables
 
@@ -1043,13 +1077,13 @@ namespace WebParser
         /// <summary>
         /// State of the website load
         /// </summary>
-        private webParserInfoState _webParserInfoState;
+        private WebParserInfoState _webParserInfoState;
 
         #endregion Variables
 
         #region Properties
 
-        public webParserInfoState WebParserInfoState
+        public WebParserInfoState WebParserInfoState
         {
             get { return _webParserInfoState; }
         }
@@ -1065,7 +1099,7 @@ namespace WebParser
         /// Error code see the class "WebParser"
         /// <param name="percent">Value in percent of the process run</param>
         /// <param name="exception">Exception which maybe occurred</param>
-        public OnWebParserUpdateEventArgs (webParserInfoState webParserInfoState)
+        public OnWebParserUpdateEventArgs (WebParserInfoState webParserInfoState)
 	    {
 		    _webParserInfoState = webParserInfoState;
         }
