@@ -687,6 +687,9 @@ namespace WebParser
                                             }
                                         }
 
+                                        // Get time to press "Cancel"
+                                        Thread.Sleep(100);
+
                                         if (ThreadRunning)
                                         {
                                             LastErrorCode = WebParserErrorCodes.SearchFinished;
@@ -703,6 +706,9 @@ namespace WebParser
                                             Percent = 0;
                                             SetAndSendState(WebParserInfoState);
                                         }
+
+                                        // Get time to press "Cancel"
+                                        Thread.Sleep(100);
 
                                         if (ThreadRunning)
                                         {
