@@ -884,19 +884,25 @@ namespace WebParser
 #if DEBUG
             Console.WriteLine(@"State: {0} / ThreadRunning: {1} / ErrorCode: {2} / Percent: {3}", State, ThreadRunning, webParserInfoState.LastErrorCode, webParserInfoState.Percentage);
 #endif
+            // Set state to "idle"
+            if (webParserInfoState.LastErrorCode == WebParserErrorCodes.Finished || webParserInfoState.LastErrorCode < 0)
+            {
+                State = WebParserState.Idle;
+                CancelThread = false;
+            }
+
+            // Send state
             if (OnWebParserUpdate != null)
             {
                 if (ThreadRunning)
                     OnWebParserUpdate(this, new OnWebParserUpdateEventArgs(webParserInfoState));
             }
 
-            // Set state to "idle"
+            // Stop thread
             if (webParserInfoState.LastErrorCode == WebParserErrorCodes.Finished || webParserInfoState.LastErrorCode < 0)
             {
                 ThreadRunning = false;
-                State = WebParserState.Idle;
-                CancelThread = false;
-            }
+            }       
         }
 
         #endregion Methodes
