@@ -12,6 +12,7 @@ namespace WebParser
     /// in a dictionary.
     /// The name is used for creating the result dictionary.
     /// </summary>
+    [Serializable]
     public class RegExList
     {
         #region Variables
@@ -119,6 +120,7 @@ namespace WebParser
     /// This class stores the regex search string and
     /// if necessary a list of regex options
     /// </summary>
+    [Serializable]
     public class RegexElement
     {
         #region Variables

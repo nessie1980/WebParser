@@ -8,6 +8,7 @@ using System.IO;
 
 namespace WebParser
 {
+    [Serializable]
     public class WebParser
     {
         #region Variables
@@ -956,6 +957,7 @@ namespace WebParser
     /// <summary>
     /// Class of the current info state of the WebParser
     /// </summary>
+    [Serializable]
     public class WebParserInfoState
     {
         #region Variables
@@ -1082,6 +1084,7 @@ namespace WebParser
     /// <summary>
     /// Class of the eventargs of the event OnWebSiteLoadFinished
     /// </summary>
+    [Serializable]
     public class OnWebParserUpdateEventArgs : EventArgs
     {
         #region Variables
